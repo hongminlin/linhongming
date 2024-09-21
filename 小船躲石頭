@@ -1,0 +1,133 @@
+import pygame
+import random
+import time
+
+pygame.init()
+
+# 設定視窗大小
+screen_width = 800
+screen_height = 600
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption('小船遊戲')
+
+WHITE = (255, 255, 255)
+
+clock = pygame.time.Clock()
+FPS = 60
+
+# 載入圖像
+boat_image = pygame.image.load(r"C:\\Users\\user\\Downloads\\大船.png")
+boat_image = pygame.transform.scale(boat_image, (150, 150))
+
+obstacle_image = pygame.image.load(r"C:\\Users\\user\\Downloads\\障礙物.png")
+obstacle_image = pygame.transform.scale(obstacle_image, (50, 50))
+
+coin_image = pygame.image.load(r"C:\\Users\\user\\Downloads\\金幣.png")
+coin_image = pygame.transform.scale(coin_image, (30, 30))
+
+speed_boost_image = pygame.image.load(r"C:\\Users\\user\\Downloads\\道具速度提升.jpg")
+speed_boost_image = pygame.transform.scale(speed_boost_image, (50, 50))
+
+# 遊戲變數
+boat_x = screen_width // 2
+boat_y = screen_height - 150
+boat_speed = 5
+score = 0
+
+obstacles = []
+coins = []
+speed_boosts = []
+speed_boost_active = False
+speed_boost_timer = 0
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        boat_x -= boat_speed
+    if keys[pygame.K_RIGHT]:
+        boat_x += boat_speed
+
+    # 限制小船不超出邊界
+    boat_x = max(0, min(boat_x, screen_width - 150))
+
+    # 生成障礙物
+    if random.randint(1, 100) < 5:  # 每100幀生成一個障礙物
+        obstacles.append([random.randint(0, screen_width - 50), -50])
+
+    # 生成金幣
+    if random.randint(1, 100) < 10:  # 每100幀生成一個金幣
+        coins.append([random.randint(0, screen_width - 30), -30])
+
+    # 生成速度提升道具
+    if random.randint(1, 100) < 2:  # 每100幀生成一次速度提升道具
+        speed_boosts.append([random.randint(0, screen_width - 50), -50])
+
+    # 更新障礙物和金幣
+    for obstacle in obstacles:
+        obstacle[1] += 5  # 障礙物下移
+        if obstacle[1] > screen_height:
+            obstacles.remove(obstacle)
+
+    for coin in coins:
+        coin[1] += 5  # 金幣下移
+        if coin[1] > screen_height:
+            coins.remove(coin)
+
+    for boost in speed_boosts:
+        boost[1] += 5  # 速度提升道具下移
+        if boost[1] > screen_height:
+            speed_boosts.remove(boost)
+
+    # 碰撞檢查
+    boat_rect = pygame.Rect(boat_x, boat_y, 150, 150)
+
+    for obstacle in obstacles:
+        obstacle_rect = pygame.Rect(obstacle[0], obstacle[1], 50, 50)
+        if boat_rect.colliderect(obstacle_rect) and not speed_boost_active:
+            print("碰到障礙物！遊戲結束！")
+            running = False
+
+    for coin in coins:
+        coin_rect = pygame.Rect(coin[0], coin[1], 30, 30)
+        if boat_rect.colliderect(coin_rect):
+            score += 1
+            coins.remove(coin)
+
+    for boost in speed_boosts:
+        boost_rect = pygame.Rect(boost[0], boost[1], 50, 50)
+        if boat_rect.colliderect(boost_rect):
+            speed_boost_active = True
+            speed_boost_timer = time.time() + 5  # 5秒的速度提升
+            speed_boosts.remove(boost)
+
+    # 檢查速度提升計時
+    if speed_boost_active and time.time() > speed_boost_timer:
+        speed_boost_active = False
+
+    # 更新畫面
+    screen.fill(WHITE)
+    screen.blit(boat_image, (boat_x, boat_y))
+
+    for obstacle in obstacles:
+        screen.blit(obstacle_image, (obstacle[0], obstacle[1]))
+
+    for coin in coins:
+        screen.blit(coin_image, (coin[0], coin[1]))
+
+    for boost in speed_boosts:
+        screen.blit(speed_boost_image, (boost[0], boost[1]))
+
+    # 顯示得分
+    font = pygame.font.SysFont(None, 36)
+    score_text = font.render(f'Score: {score}', True, (0, 0, 0))
+    screen.blit(score_text, (10, 10))
+
+    pygame.display.flip()
+    clock.tick(FPS)
+
+pygame.quit()
